@@ -1,5 +1,7 @@
 package log
 
+import "sync"
+
 type (
 	Field string
 	level int
@@ -27,3 +29,5 @@ type WrapperFactoryFunc func() Wrapper
 var Factory WrapperFactoryFunc = NewLogrusWrapper
 
 var registeredFields = map[Field]struct{}{}
+
+var registeredFieldsMutex sync.Mutex
