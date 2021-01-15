@@ -3,6 +3,7 @@ package log
 import (
 	"fmt"
 	"log"
+	"os"
 	"testing"
 
 	"github.com/sirupsen/logrus"
@@ -83,40 +84,49 @@ func formatCtx(ctx map[string]string) string {
 	}
 	return s
 }
-func (l *TestingWrapper) Debugf(format string, args ...interface{}) {
+func (l *TestingWrapper) log(level, format string, args ...interface{}) {
+	// Recover function to avoid panic: Log in goroutine after test has completed
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Printf("[" + level + "] " + formatCtx(l.ctx) + " " + fmt.Sprintf(format, args...))
+		}
+	}()
 	if len(args) == 0 {
-		l.t.Log("[DEBUG] " + formatCtx(l.ctx) + " " + format)
+		l.t.Log("[" + level + "] " + formatCtx(l.ctx) + " " + format)
 	} else {
-		l.t.Logf("[DEBUG] " + formatCtx(l.ctx) + " " + fmt.Sprintf(format, args...))
+		l.t.Logf("[" + level + "] " + formatCtx(l.ctx) + " " + fmt.Sprintf(format, args...))
 	}
 }
-func (l *TestingWrapper) Infof(format string, args ...interface{}) {
-	if len(args) == 0 {
-		l.t.Log("[INFO] " + formatCtx(l.ctx) + " " + format)
-	} else {
-		l.t.Logf("[INFO] " + formatCtx(l.ctx) + " " + fmt.Sprintf(format, args...))
-	}
-}
-func (l *TestingWrapper) Warnf(format string, args ...interface{}) {
-	if len(args) == 0 {
-		l.t.Log("[WARN] " + formatCtx(l.ctx) + " " + format)
-	} else {
-		l.t.Logf("[WARN] " + formatCtx(l.ctx) + " " + fmt.Sprintf(format, args...))
-	}
-}
-func (l *TestingWrapper) Fatalf(format string, args ...interface{}) {
+func (l *TestingWrapper) fatal(format string, args ...interface{}) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Printf("[FATAL] " + formatCtx(l.ctx) + " " + fmt.Sprintf(format, args...))
+			os.Exit(2)
+		}
+	}()
 	if len(args) == 0 {
 		l.t.Fatal("[FATAL] " + formatCtx(l.ctx) + " " + format)
 	} else {
-		l.t.Fatal("[FATAL] " + formatCtx(l.ctx) + " " + fmt.Sprintf(format, args...))
+		l.t.Fatalf("[FATAL] " + formatCtx(l.ctx) + " " + fmt.Sprintf(format, args...))
 	}
 }
+
+func (l *TestingWrapper) Debugf(format string, args ...interface{}) {
+	l.log("DEBUG", format, args...)
+}
+func (l *TestingWrapper) Infof(format string, args ...interface{}) {
+	l.log("INFO", format, args...)
+
+}
+func (l *TestingWrapper) Warnf(format string, args ...interface{}) {
+	l.log("WARN", format, args...)
+
+}
+func (l *TestingWrapper) Fatalf(format string, args ...interface{}) {
+	l.fatal(format, args...)
+}
 func (l *TestingWrapper) Errorf(format string, args ...interface{}) {
-	if len(args) == 0 {
-		l.t.Log("[ERROR] " + formatCtx(l.ctx) + " " + format)
-	} else {
-		l.t.Logf("[ERROR] " + formatCtx(l.ctx) + " " + fmt.Sprintf(format, args...))
-	}
+	l.log("ERROR", format, args...)
 }
 
 /* golang log package wrapper */
