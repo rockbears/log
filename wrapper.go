@@ -4,10 +4,73 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"sort"
 	"testing"
 
 	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
 )
+
+/* Zap wrapper */
+func NewZapWrapper(logger *zap.Logger) WrapperFactoryFunc {
+	return func() Wrapper {
+		return &ZapWrapper{logger: logger, sugar: logger.Sugar()}
+	}
+}
+
+type ZapWrapper struct {
+	logger *zap.Logger
+	sugar  *zap.SugaredLogger
+}
+
+func (l *ZapWrapper) GetLevel() Level {
+	switch {
+	case l.logger.Core().Enabled(zap.DebugLevel):
+		return LevelDebug
+	case l.logger.Core().Enabled(zap.InfoLevel):
+		return LevelInfo
+	case l.logger.Core().Enabled(zap.WarnLevel):
+		return LevelWarn
+	case l.logger.Core().Enabled(zap.ErrorLevel):
+		return LevelError
+	case l.logger.Core().Enabled(zap.FatalLevel):
+		return LevelFatal
+	case l.logger.Core().Enabled(zap.PanicLevel):
+		return LevelError
+	default:
+		panic(fmt.Errorf("zap level is not handled"))
+	}
+}
+func (l *ZapWrapper) WithField(key string, value interface{}) {
+	l.sugar = l.sugar.With(key, value)
+}
+func (l *ZapWrapper) format(format string, args ...interface{}) string {
+	var msg = format
+	if len(args) > 0 {
+		msg = fmt.Sprintf(format, args...)
+	}
+	return msg
+}
+func (l *ZapWrapper) Debugf(format string, args ...interface{}) {
+	l.sugar.Debugw(l.format(format, args...))
+}
+func (l *ZapWrapper) Infof(format string, args ...interface{}) {
+	l.sugar.Infow(l.format(format, args...))
+
+}
+func (l *ZapWrapper) Warnf(format string, args ...interface{}) {
+	l.sugar.Warnw(l.format(format, args...))
+
+}
+func (l *ZapWrapper) Fatalf(format string, args ...interface{}) {
+	l.sugar.Fatalw(l.format(format, args...))
+}
+func (l *ZapWrapper) Errorf(format string, args ...interface{}) {
+	l.sugar.Errorw(l.format(format, args...))
+}
+func (l *ZapWrapper) Panicf(format string, args ...interface{}) {
+	l.sugar.Panicw(l.format(format, args...))
+}
 
 /* Logrus wrapper */
 
@@ -19,6 +82,24 @@ type LogrusWrapper struct {
 	entry *logrus.Entry
 }
 
+func (l *LogrusWrapper) GetLevel() Level {
+	switch logrus.StandardLogger().Level {
+	case logrus.DebugLevel:
+		return LevelDebug
+	case logrus.InfoLevel:
+		return LevelInfo
+	case logrus.WarnLevel:
+		return LevelWarn
+	case logrus.ErrorLevel:
+		return LevelError
+	case logrus.FatalLevel:
+		return LevelFatal
+	case logrus.PanicLevel:
+		return LevelPanic
+	default:
+		panic(fmt.Errorf("logrus level %q is not handled", l.entry.Level))
+	}
+}
 func (l *LogrusWrapper) WithField(key string, value interface{}) {
 	l.entry = l.entry.WithField(key, value)
 }
@@ -57,6 +138,13 @@ func (l *LogrusWrapper) Errorf(format string, args ...interface{}) {
 		l.entry.Errorf(format, args...)
 	}
 }
+func (l *LogrusWrapper) Panicf(format string, args ...interface{}) {
+	if len(args) == 0 {
+		l.entry.Panic(format)
+	} else {
+		l.entry.Panicf(format, args...)
+	}
+}
 
 func NewTestingWrapper(t *testing.T) WrapperFactoryFunc {
 	return func() Wrapper {
@@ -71,6 +159,9 @@ type TestingWrapper struct {
 	t   *testing.T
 }
 
+func (l *TestingWrapper) GetLevel() Level {
+	return LevelDebug
+}
 func (l *TestingWrapper) WithField(key string, value interface{}) {
 	if l.ctx == nil {
 		l.ctx = map[string]string{}
@@ -78,8 +169,15 @@ func (l *TestingWrapper) WithField(key string, value interface{}) {
 	l.ctx[key] = fmt.Sprintf("%v", value)
 }
 func formatCtx(ctx map[string]string) string {
+	var keys []string
+	for k := range ctx {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+
 	var s string
-	for k, v := range ctx {
+	for _, k := range keys {
+		v := ctx[k]
 		s += fmt.Sprintf("[%s=%s]", k, v)
 	}
 	return s
@@ -128,17 +226,31 @@ func (l *TestingWrapper) Fatalf(format string, args ...interface{}) {
 func (l *TestingWrapper) Errorf(format string, args ...interface{}) {
 	l.log("ERROR", format, args...)
 }
+func (l *TestingWrapper) Panicf(format string, args ...interface{}) {
+	l.log("PANIC", format, args...)
+}
 
 /* golang log package wrapper */
 
-func NewStdWrapper() Wrapper {
-	return &StdWrapper{}
+type StdWrapperOptions struct {
+	Level            Level
+	DisableTimestamp bool
 }
 
 type StdWrapper struct {
-	ctx map[string]string
+	opts StdWrapperOptions
+	ctx  map[string]string
 }
 
+func NewStdWrapper(opts StdWrapperOptions) WrapperFactoryFunc {
+	return func() Wrapper {
+		return &StdWrapper{opts: opts}
+	}
+}
+
+func (l *StdWrapper) GetLevel() Level {
+	return l.opts.Level
+}
 func (l *StdWrapper) WithField(key string, value interface{}) {
 	if l.ctx == nil {
 		l.ctx = map[string]string{}
@@ -146,42 +258,59 @@ func (l *StdWrapper) WithField(key string, value interface{}) {
 	l.ctx[key] = fmt.Sprintf("%v", value)
 }
 
+func (l *StdWrapper) Print(s string) {
+	if l.opts.DisableTimestamp {
+		fmt.Println(s)
+	} else {
+		log.Println(s)
+	}
+}
+
 func (l *StdWrapper) Debugf(format string, args ...interface{}) {
 	if len(args) == 0 {
-		log.Print("[DEBUG] " + formatCtx(l.ctx) + " " + format)
+		l.Print("[DEBUG] " + formatCtx(l.ctx) + " " + format)
 	} else {
-		log.Printf("[DEBUG] " + formatCtx(l.ctx) + " " + fmt.Sprintf(format, args...))
+		l.Print("[DEBUG] " + formatCtx(l.ctx) + " " + fmt.Sprintf(format, args...))
 	}
 }
 
 func (l *StdWrapper) Infof(format string, args ...interface{}) {
 	if len(args) == 0 {
-		log.Print("[INFO] " + formatCtx(l.ctx) + " " + format)
+		l.Print("[INFO] " + formatCtx(l.ctx) + " " + format)
 	} else {
-		log.Printf("[INFO] " + formatCtx(l.ctx) + " " + fmt.Sprintf(format, args...))
+		l.Print("[INFO] " + formatCtx(l.ctx) + " " + fmt.Sprintf(format, args...))
 	}
 }
 
 func (l *StdWrapper) Warnf(format string, args ...interface{}) {
 	if len(args) == 0 {
-		log.Print("[WARN] " + formatCtx(l.ctx) + " " + format)
+		l.Print("[WARN] " + formatCtx(l.ctx) + " " + format)
 	} else {
-		log.Printf("[WARN] " + formatCtx(l.ctx) + " " + fmt.Sprintf(format, args...))
+		l.Print("[WARN] " + formatCtx(l.ctx) + " " + fmt.Sprintf(format, args...))
 	}
 }
 
 func (l *StdWrapper) Fatalf(format string, args ...interface{}) {
 	if len(args) == 0 {
-		log.Fatal("[FATAL] " + formatCtx(l.ctx) + " " + format)
+		l.Print("[FATAL] " + formatCtx(l.ctx) + " " + format)
 	} else {
-		log.Fatalf("[FATAL] " + formatCtx(l.ctx) + " " + fmt.Sprintf(format, args...))
+		l.Print("[FATAL] " + formatCtx(l.ctx) + " " + fmt.Sprintf(format, args...))
 	}
+	os.Exit(1)
 }
 
 func (l *StdWrapper) Errorf(format string, args ...interface{}) {
 	if len(args) == 0 {
-		log.Print("[ERROR] " + formatCtx(l.ctx) + " " + format)
+		l.Print("[ERROR] " + formatCtx(l.ctx) + " " + format)
 	} else {
-		log.Printf("[ERROR] " + formatCtx(l.ctx) + " " + fmt.Sprintf(format, args...))
+		l.Print("[ERROR] " + formatCtx(l.ctx) + " " + fmt.Sprintf(format, args...))
+	}
+}
+
+func (l *StdWrapper) Panicf(format string, args ...interface{}) {
+	if len(args) == 0 {
+		l.Print("[PANIC] " + formatCtx(l.ctx) + " " + format)
+	} else {
+		l.Print("[PANIC] " + formatCtx(l.ctx) + " " + fmt.Sprintf(format, args...))
 	}
 }

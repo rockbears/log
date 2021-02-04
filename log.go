@@ -3,14 +3,30 @@ package log
 import (
 	"context"
 	"runtime"
+	"sort"
 )
 
 func RegisterField(fields ...Field) {
 	registeredFieldsMutex.Lock()
 	defer registeredFieldsMutex.Unlock()
 
+	defer func() {
+		sort.Slice(registeredFields, func(i, j int) bool {
+			return registeredFields[i] < registeredFields[j]
+		})
+	}()
+
 	for _, f := range fields {
-		registeredFields[f] = struct{}{}
+		var exist bool
+		for _, existingF := range registeredFields {
+			if f == existingF {
+				exist = true
+				break
+			}
+		}
+		if !exist {
+			registeredFields = append(registeredFields, f)
+		}
 	}
 }
 
@@ -18,29 +34,39 @@ func UnregisterField(fields ...Field) {
 	registeredFieldsMutex.Lock()
 	defer registeredFieldsMutex.Unlock()
 
+loop:
 	for _, f := range fields {
-		delete(registeredFields, f)
+		for i, existingF := range registeredFields {
+			if f == existingF {
+				registeredFields = append(registeredFields[:i], registeredFields[i+1:]...)
+				goto loop
+			}
+		}
 	}
+
+	sort.Slice(registeredFields, func(i, j int) bool {
+		return registeredFields[i] < registeredFields[j]
+	})
 }
 
 func Debug(ctx context.Context, format string, args ...interface{}) {
-	call(ctx, debug, format, args...)
+	call(ctx, LevelDebug, format, args...)
 }
 
 func Info(ctx context.Context, format string, args ...interface{}) {
-	call(ctx, info, format, args...)
+	call(ctx, LevelInfo, format, args...)
 }
 
 func Warn(ctx context.Context, format string, args ...interface{}) {
-	call(ctx, warn, format, args...)
+	call(ctx, LevelWarn, format, args...)
 }
 
 func Error(ctx context.Context, format string, args ...interface{}) {
-	call(ctx, error, format, args...)
+	call(ctx, LevelError, format, args...)
 }
 
 func Fatal(ctx context.Context, format string, args ...interface{}) {
-	call(ctx, fatal, format, args...)
+	call(ctx, LevelFatal, format, args...)
 }
 
 var (
@@ -53,7 +79,13 @@ func init() {
 	RegisterField(FieldSourceFile, FieldSourceLine, FieldCaller)
 }
 
-func call(ctx context.Context, level level, format string, args ...interface{}) {
+func call(ctx context.Context, level Level, format string, args ...interface{}) {
+	entry := Factory()
+
+	if level < entry.GetLevel() {
+		return
+	}
+
 	pc, file, line, ok := runtime.Caller(2)
 	if ok {
 		ctx = context.WithValue(ctx, FieldSourceFile, file)
@@ -64,25 +96,28 @@ func call(ctx context.Context, level level, format string, args ...interface{}) 
 		}
 	}
 
-	entry := Factory()
-	for k := range registeredFields {
+	for _, k := range registeredFields {
 		v := ctx.Value(k)
 		if v != nil {
 			entry.WithField(string(k), v)
 		}
 	}
+
 	switch level {
-	case info:
+	case LevelInfo:
 		entry.Infof(format, args...)
 
-	case warn:
+	case LevelWarn:
 		entry.Warnf(format, args...)
 
-	case error:
+	case LevelError:
 		entry.Errorf(format, args...)
 
-	case fatal:
+	case LevelFatal:
 		entry.Fatalf(format, args...)
+
+	case LevelPanic:
+		entry.Panicf(format, args...)
 
 	default:
 		entry.Debugf(format, args...)

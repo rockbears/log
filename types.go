@@ -4,30 +4,33 @@ import "sync"
 
 type (
 	Field string
-	level int
+	Level int
 )
 
 const (
-	debug level = iota
-	info
-	warn
-	error
-	fatal
+	LevelDebug Level = iota
+	LevelInfo
+	LevelWarn
+	LevelError
+	LevelFatal
+	LevelPanic
 )
 
 type Wrapper interface {
+	GetLevel() Level
 	WithField(key string, value interface{})
 	Debugf(format string, args ...interface{})
 	Infof(format string, args ...interface{})
 	Warnf(format string, args ...interface{})
 	Fatalf(format string, args ...interface{})
 	Errorf(format string, args ...interface{})
+	Panicf(format string, args ...interface{})
 }
 
 type WrapperFactoryFunc func() Wrapper
 
 var Factory WrapperFactoryFunc = NewLogrusWrapper
 
-var registeredFields = map[Field]struct{}{}
+var registeredFields []Field
 
 var registeredFieldsMutex sync.Mutex
