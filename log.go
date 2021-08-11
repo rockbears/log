@@ -2,8 +2,11 @@ package log
 
 import (
 	"context"
+	"fmt"
 	"runtime"
 	"sort"
+
+	"github.com/pkg/errors"
 )
 
 func RegisterField(fields ...Field) {
@@ -50,43 +53,44 @@ loop:
 }
 
 func Debug(ctx context.Context, format string, args ...interface{}) {
-	call(ctx, LevelDebug, format, args...)
+	call(ctx, LevelDebug, 2, format, args...)
 }
 
 func Info(ctx context.Context, format string, args ...interface{}) {
-	call(ctx, LevelInfo, format, args...)
+	call(ctx, LevelInfo, 2, format, args...)
 }
 
 func Warn(ctx context.Context, format string, args ...interface{}) {
-	call(ctx, LevelWarn, format, args...)
+	call(ctx, LevelWarn, 2, format, args...)
 }
 
 func Error(ctx context.Context, format string, args ...interface{}) {
-	call(ctx, LevelError, format, args...)
+	call(ctx, LevelError, 2, format, args...)
 }
 
 func Fatal(ctx context.Context, format string, args ...interface{}) {
-	call(ctx, LevelFatal, format, args...)
+	call(ctx, LevelFatal, 2, format, args...)
 }
 
 var (
 	FieldSourceFile = Field("source_file")
 	FieldSourceLine = Field("source_line")
 	FieldCaller     = Field("caller")
+	FieldStackTrace = Field("stack_trace")
 )
 
 func init() {
-	RegisterField(FieldSourceFile, FieldSourceLine, FieldCaller)
+	RegisterField(FieldSourceFile, FieldSourceLine, FieldCaller, FieldStackTrace)
 }
 
-func call(ctx context.Context, level Level, format string, args ...interface{}) {
+func call(ctx context.Context, level Level, callerOffset int, format string, args ...interface{}) {
 	entry := Factory()
 
 	if level < entry.GetLevel() {
 		return
 	}
 
-	pc, file, line, ok := runtime.Caller(2)
+	pc, file, line, ok := runtime.Caller(callerOffset)
 	if ok {
 		ctx = context.WithValue(ctx, FieldSourceFile, file)
 		ctx = context.WithValue(ctx, FieldSourceLine, line)
@@ -122,4 +126,21 @@ func call(ctx context.Context, level Level, format string, args ...interface{}) 
 	default:
 		entry.Debugf(format, args...)
 	}
+}
+
+type StackTracer interface {
+	StackTrace() errors.StackTrace
+}
+
+func ContextWithStackTrace(ctx context.Context, err error) context.Context {
+	errWithStracktrace, ok := err.(StackTracer)
+	if ok {
+		ctx = context.WithValue(ctx, FieldStackTrace, fmt.Sprintf("%+v", errWithStracktrace))
+	}
+	return ctx
+}
+
+func ErrorWithStackTrace(ctx context.Context, err error) {
+	ctx = ContextWithStackTrace(ctx, err)
+	call(ctx, LevelError, 2, err.Error())
 }

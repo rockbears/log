@@ -2,8 +2,10 @@ package log_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 
+	"github.com/pkg/errors"
 	"github.com/rockbears/log"
 	"github.com/sirupsen/logrus"
 	"go.uber.org/zap"
@@ -90,4 +92,33 @@ func ExampleNewZapWrapper() {
 	// {"level":"info","msg":"this is \"info\"","asset":"ExampleNewZapWrapper","caller":"github.com/rockbears/log_test.ExampleNewZapWrapper","component":"rockbears/log","source_file":"/Users/fsamin/go/src/github.com/rockbears/log/log_test.go"}
 	// {"level":"warn","msg":"this is warn","asset":"ExampleNewZapWrapper","caller":"github.com/rockbears/log_test.ExampleNewZapWrapper","component":"rockbears/log","source_file":"/Users/fsamin/go/src/github.com/rockbears/log/log_test.go"}
 	// {"level":"error","msg":"this is error","asset":"ExampleNewZapWrapper","caller":"github.com/rockbears/log_test.ExampleNewZapWrapper","component":"rockbears/log","source_file":"/Users/fsamin/go/src/github.com/rockbears/log/log_test.go"}
+}
+
+func ExampleErrorWithStackTrace() {
+	// Init the wrapper
+	log.Factory = log.NewStdWrapper(log.StdWrapperOptions{Level: log.LevelInfo, DisableTimestamp: true})
+	log.UnregisterField(log.FieldSourceLine)
+	// Init the context
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, fieldComponent, "rockbears/log")
+	ctx = context.WithValue(ctx, fieldAsset, "ExampleErrorWithStackTrace")
+	log.ErrorWithStackTrace(ctx, fmt.Errorf("this is an error"))
+	log.ErrorWithStackTrace(ctx, errors.WithStack(fmt.Errorf("this is an error")))
+	// Output:
+	// [ERROR] [asset=ExampleErrorWithStackTrace][caller=github.com/rockbears/log_test.ExampleErrorWithStackTrace][component=rockbears/log][source_file=/Users/fsamin/go/src/github.com/rockbears/log/log_test.go] this is an error
+	// [ERROR] [asset=ExampleErrorWithStackTrace][caller=github.com/rockbears/log_test.ExampleErrorWithStackTrace][component=rockbears/log][source_file=/Users/fsamin/go/src/github.com/rockbears/log/log_test.go][stack_trace=this is an error
+	// github.com/rockbears/log_test.ExampleErrorWithStackTrace
+	// 	/Users/fsamin/go/src/github.com/rockbears/log/log_test.go:106
+	// testing.runExample
+	// 	/Users/fsamin/Applications/go/src/testing/run_example.go:63
+	// testing.runExamples
+	// 	/Users/fsamin/Applications/go/src/testing/example.go:44
+	// testing.(*M).Run
+	// 	/Users/fsamin/Applications/go/src/testing/testing.go:1419
+	// main.main
+	// 	_testmain.go:51
+	// runtime.main
+	// 	/Users/fsamin/Applications/go/src/runtime/proc.go:225
+	// runtime.goexit
+	// 	/Users/fsamin/Applications/go/src/runtime/asm_amd64.s:1371] this is an error
 }
