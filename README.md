@@ -1,7 +1,12 @@
 # rockbears/log
 
 Log with context values as fields.
-Compatible with `logrus`, `std` logger and `testing.T` logger.
+
+Compatible with [zap](https://github.com/uber-go/zap), [logrus](https://github.com/sirupsen/logrus), [std](https://pkg.go.dev/log) logger and [testing.T](https://pkg.go.dev/testing#T) logger.
+
+It supports [pkg/errors](https://github.com/pkg/errors) to add a `stack_trace` field if the handled error `error` implements `StackTracer`interface.
+
+It offers a convenient way to keep your logs when you are running unit tests.
 
 ## Install
 
@@ -58,5 +63,16 @@ Preserve your log in unit tests.
     }
 ```
 
+Log errors easily.
+
+```golang
+    import "github.com/pkg/errors"
+
+    func foo() {
+        ctx := context.Background()
+        err := errors.New("this is an error") // from package "github.com/pkg/errors"
+        log.ErrorWithStackTrace(ctx, err) // will produce a nice stack_trace field 
+    )
+```
 
 
