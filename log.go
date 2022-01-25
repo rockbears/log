@@ -13,12 +13,6 @@ func RegisterField(fields ...Field) {
 	registeredFieldsMutex.Lock()
 	defer registeredFieldsMutex.Unlock()
 
-	defer func() {
-		sort.Slice(registeredFields, func(i, j int) bool {
-			return registeredFields[i] < registeredFields[j]
-		})
-	}()
-
 	for _, f := range fields {
 		var exist bool
 		for _, existingF := range registeredFields {
@@ -31,6 +25,10 @@ func RegisterField(fields ...Field) {
 			registeredFields = append(registeredFields, f)
 		}
 	}
+
+	sort.Slice(registeredFields, func(i, j int) bool {
+		return registeredFields[i] < registeredFields[j]
+	})
 }
 
 func UnregisterField(fields ...Field) {

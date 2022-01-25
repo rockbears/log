@@ -110,15 +110,15 @@ func ExampleErrorWithStackTrace() {
 	// github.com/rockbears/log_test.ExampleErrorWithStackTrace
 	// 	/Users/fsamin/go/src/github.com/rockbears/log/log_test.go:106
 	// testing.runExample
-	// 	/Users/fsamin/Applications/go/src/testing/run_example.go:63
+	// 	/Users/fsamin/Applications/go/src/testing/run_example.go:64
 	// testing.runExamples
 	// 	/Users/fsamin/Applications/go/src/testing/example.go:44
 	// testing.(*M).Run
-	// 	/Users/fsamin/Applications/go/src/testing/testing.go:1419
+	// 	/Users/fsamin/Applications/go/src/testing/testing.go:1505
 	// main.main
 	// 	_testmain.go:51
 	// runtime.main
-	// 	/Users/fsamin/Applications/go/src/runtime/proc.go:225
+	// 	/Users/fsamin/Applications/go/src/runtime/proc.go:255
 	// runtime.goexit
-	// 	/Users/fsamin/Applications/go/src/runtime/asm_amd64.s:1371] this is an error
+	// 	/Users/fsamin/Applications/go/src/runtime/asm_amd64.s:1581] this is an error
 }
