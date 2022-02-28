@@ -142,3 +142,14 @@ func ErrorWithStackTrace(ctx context.Context, err error) {
 	ctx = ContextWithStackTrace(ctx, err)
 	call(ctx, LevelError, 2, err.Error())
 }
+
+func FieldValues(ctx context.Context) map[Field]interface{} {
+	res := make(map[Field]interface{}, 10)
+	for _, k := range registeredFields {
+		v := ctx.Value(k)
+		if v != nil {
+			res[k] = v
+		}
+	}
+	return res
+}
