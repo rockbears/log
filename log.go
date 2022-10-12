@@ -50,6 +50,17 @@ loop:
 	})
 }
 
+func Skip(field Field, value interface{}) {
+	excludeRulesMutex.Lock()
+	defer excludeRulesMutex.Unlock()
+
+	if excludeRules == nil {
+		excludeRules = make(map[Field]any)
+	}
+
+	excludeRules[field] = value
+}
+
 func Debug(ctx context.Context, format string, args ...interface{}) {
 	call(ctx, LevelDebug, 2, format, args...)
 }
@@ -101,6 +112,11 @@ func call(ctx context.Context, level Level, callerOffset int, format string, arg
 	for _, k := range registeredFields {
 		v := ctx.Value(k)
 		if v != nil {
+			if exludeValue, has := excludeRules[k]; has {
+				if v == exludeValue {
+					return
+				}
+			}
 			entry.WithField(string(k), v)
 		}
 	}
