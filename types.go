@@ -34,3 +34,7 @@ var Factory WrapperFactoryFunc = NewLogrusWrapper
 var registeredFields []Field
 
 var registeredFieldsMutex sync.Mutex
+
+var excludeRules map[Field]any
+
+var excludeRulesMutex sync.Mutex

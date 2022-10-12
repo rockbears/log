@@ -122,3 +122,23 @@ func ExampleErrorWithStackTrace() {
 	// runtime.goexit
 	// 	/Users/fsamin/Applications/go/src/runtime/asm_amd64.s:1581] this is an error
 }
+
+func ExampleNewStdWrapperAndSkip() {
+	// Init the wrapper
+	log.Factory = log.NewStdWrapper(log.StdWrapperOptions{Level: log.LevelInfo, DisableTimestamp: true})
+	log.UnregisterField(log.FieldSourceLine)
+	// Init the context
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, fieldComponent, "rockbears/log")
+	ctx = context.WithValue(ctx, fieldAsset, "ExampleNewStdWrapper")
+	log.Debug(ctx, "this log should not be displayed")
+	log.Info(ctx, "this is %q", "info")
+	log.Warn(ctx, "this is warn")
+	log.Error(ctx, "this is error")
+	log.Skip(fieldAsset, "ExampleNewStdWrapper")
+	log.Info(ctx, "this log should not be displayed because is should be skipped")
+	// Output:
+	// [INFO] [asset=ExampleNewStdWrapper][caller=github.com/rockbears/log_test.ExampleNewStdWrapperAndSkip][component=rockbears/log][source_file=/Users/fsamin/go/src/github.com/rockbears/log/log_test.go] this is "info"
+	// [WARN] [asset=ExampleNewStdWrapper][caller=github.com/rockbears/log_test.ExampleNewStdWrapperAndSkip][component=rockbears/log][source_file=/Users/fsamin/go/src/github.com/rockbears/log/log_test.go] this is warn
+	// [ERROR] [asset=ExampleNewStdWrapper][caller=github.com/rockbears/log_test.ExampleNewStdWrapperAndSkip][component=rockbears/log][source_file=/Users/fsamin/go/src/github.com/rockbears/log/log_test.go] this is error
+}
