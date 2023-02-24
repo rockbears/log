@@ -50,6 +50,9 @@ loop:
 	})
 }
 
+// CallerFrameToSkip correspond to the number of frame to skip while retrieving the caller stack
+var CallerFrameToSkip = 2
+
 func Skip(field Field, value interface{}) {
 	excludeRulesMutex.Lock()
 	defer excludeRulesMutex.Unlock()
@@ -62,23 +65,27 @@ func Skip(field Field, value interface{}) {
 }
 
 func Debug(ctx context.Context, format string, args ...interface{}) {
-	call(ctx, LevelDebug, 2, format, args...)
+	call(ctx, LevelDebug, format, args...)
 }
 
 func Info(ctx context.Context, format string, args ...interface{}) {
-	call(ctx, LevelInfo, 2, format, args...)
+	call(ctx, LevelInfo, format, args...)
 }
 
 func Warn(ctx context.Context, format string, args ...interface{}) {
-	call(ctx, LevelWarn, 2, format, args...)
+	call(ctx, LevelWarn, format, args...)
 }
 
 func Error(ctx context.Context, format string, args ...interface{}) {
-	call(ctx, LevelError, 2, format, args...)
+	call(ctx, LevelError, format, args...)
 }
 
 func Fatal(ctx context.Context, format string, args ...interface{}) {
-	call(ctx, LevelFatal, 2, format, args...)
+	call(ctx, LevelFatal, format, args...)
+}
+
+func Panic(ctx context.Context, format string, args ...interface{}) {
+	call(ctx, LevelPanic, format, args...)
 }
 
 var (
@@ -92,14 +99,14 @@ func init() {
 	RegisterField(FieldSourceFile, FieldSourceLine, FieldCaller, FieldStackTrace)
 }
 
-func call(ctx context.Context, level Level, callerOffset int, format string, args ...interface{}) {
+func call(ctx context.Context, level Level, format string, args ...interface{}) {
 	entry := Factory()
 
 	if level < entry.GetLevel() {
 		return
 	}
 
-	pc, file, line, ok := runtime.Caller(callerOffset)
+	pc, file, line, ok := runtime.Caller(CallerFrameToSkip)
 	if ok {
 		ctx = context.WithValue(ctx, FieldSourceFile, file)
 		ctx = context.WithValue(ctx, FieldSourceLine, line)
@@ -156,7 +163,7 @@ func ContextWithStackTrace(ctx context.Context, err error) context.Context {
 
 func ErrorWithStackTrace(ctx context.Context, err error) {
 	ctx = ContextWithStackTrace(ctx, err)
-	call(ctx, LevelError, 2, err.Error())
+	call(ctx, LevelError, err.Error())
 }
 
 func FieldValues(ctx context.Context) map[Field]interface{} {
