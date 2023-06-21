@@ -97,7 +97,7 @@ func ExampleNewZapWrapper() {
 
 func TestErrorWithStackTrace(t *testing.T) {
 	// Init the wrapper
-	log.Factory = log.NewStdWrapper(log.StdWrapperOptions{Level: log.LevelInfo, DisableTimestamp: true})
+	log.Factory = log.NewTestingWrapper(t)
 	log.UnregisterField(log.FieldSourceLine, log.FieldSourceFile)
 	// Init the context
 	ctx := context.Background()
@@ -109,7 +109,7 @@ func TestErrorWithStackTrace(t *testing.T) {
 
 func ExampleNewStdWrapperAndSkip() {
 	// Init the wrapper
-	log.Factory = log.NewTestingWrapper(t)
+	log.Factory = log.NewStdWrapper(log.StdWrapperOptions{Level: log.LevelInfo, DisableTimestamp: true})
 	log.UnregisterField(log.FieldSourceLine, log.FieldSourceFile)
 	// Init the context
 	ctx := context.Background()
