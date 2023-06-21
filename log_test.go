@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"testing"
 
 	"github.com/pkg/errors"
 	"github.com/rockbears/log"
