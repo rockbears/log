@@ -94,7 +94,7 @@ func ExampleNewZapWrapper() {
 	// {"level":"error","msg":"this is error","asset":"ExampleNewZapWrapper","caller":"github.com/rockbears/log_test.ExampleNewZapWrapper","component":"rockbears/log"}
 }
 
-func TestErrorWithStackTrace() {
+func TestErrorWithStackTrace(t *testing.T) {
 	// Init the wrapper
 	log.Factory = log.NewStdWrapper(log.StdWrapperOptions{Level: log.LevelInfo, DisableTimestamp: true})
 	log.UnregisterField(log.FieldSourceLine, log.FieldSourceFile)
@@ -108,7 +108,7 @@ func TestErrorWithStackTrace() {
 
 func ExampleNewStdWrapperAndSkip() {
 	// Init the wrapper
-	log.Factory = log.NewStdWrapper(log.StdWrapperOptions{Level: log.LevelInfo, DisableTimestamp: true})
+	log.Factory = log.NewTestingWrapper(t)
 	log.UnregisterField(log.FieldSourceLine, log.FieldSourceFile)
 	// Init the context
 	ctx := context.Background()
