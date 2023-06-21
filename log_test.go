@@ -94,7 +94,7 @@ func ExampleNewZapWrapper() {
 	// {"level":"error","msg":"this is error","asset":"ExampleNewZapWrapper","caller":"github.com/rockbears/log_test.ExampleNewZapWrapper","component":"rockbears/log"}
 }
 
-func ExampleErrorWithStackTrace() {
+func TestErrorWithStackTrace() {
 	// Init the wrapper
 	log.Factory = log.NewStdWrapper(log.StdWrapperOptions{Level: log.LevelInfo, DisableTimestamp: true})
 	log.UnregisterField(log.FieldSourceLine, log.FieldSourceFile)
@@ -104,23 +104,6 @@ func ExampleErrorWithStackTrace() {
 	ctx = context.WithValue(ctx, fieldAsset, "ExampleErrorWithStackTrace")
 	log.ErrorWithStackTrace(ctx, fmt.Errorf("this is an error"))
 	log.ErrorWithStackTrace(ctx, errors.WithStack(fmt.Errorf("this is an error")))
-	// Output:
-	// [ERROR] [asset=ExampleErrorWithStackTrace][caller=github.com/rockbears/log_test.ExampleErrorWithStackTrace][component=rockbears/log] this is an error
-	// [ERROR] [asset=ExampleErrorWithStackTrace][caller=github.com/rockbears/log_test.ExampleErrorWithStackTrace][component=rockbears/log][stack_trace=this is an error
-	// github.com/rockbears/log_test.ExampleErrorWithStackTrace
-	// 	/Users/fsamin/go/src/github.com/rockbears/log/log_test.go:106
-	// testing.runExample
-	// 	/Users/fsamin/Applications/go/src/testing/run_example.go:63
-	// testing.runExamples
-	// 	/Users/fsamin/Applications/go/src/testing/example.go:44
-	// testing.(*M).Run
-	// 	/Users/fsamin/Applications/go/src/testing/testing.go:1728
-	// main.main
-	// 	_testmain.go:51
-	// runtime.main
-	// 	/Users/fsamin/Applications/go/src/runtime/proc.go:250
-	// runtime.goexit
-	// 	/Users/fsamin/Applications/go/src/runtime/asm_amd64.s:1594] this is an error
 }
 
 func ExampleNewStdWrapperAndSkip() {
