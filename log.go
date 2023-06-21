@@ -50,6 +50,13 @@ loop:
 	})
 }
 
+// GetRegisteredFields returns a copy of the registered fields.
+func GetRegisteredFields() []Field {
+	fields := make([]Field, len(registeredFields))
+	copy(fields, registeredFields)
+	return fields
+}
+
 // CallerFrameToSkip correspond to the number of frame to skip while retrieving the caller stack
 var CallerFrameToSkip = 2
 
@@ -96,6 +103,10 @@ var (
 )
 
 func init() {
+	RegisterDefaultFields()
+}
+
+func RegisterDefaultFields() {
 	RegisterField(FieldSourceFile, FieldSourceLine, FieldCaller, FieldStackTrace)
 }
 

@@ -19,6 +19,10 @@ const (
 )
 
 func init() {
+	registerDefaultFields()
+}
+
+func registerDefaultFields() {
 	log.RegisterField(fieldComponent, fieldAsset)
 }
 
@@ -125,4 +129,38 @@ func ExampleNewStdWrapperAndSkip() {
 	// [INFO] [asset=ExampleNewStdWrapper][caller=github.com/rockbears/log_test.ExampleNewStdWrapperAndSkip][component=rockbears/log] this is "info"
 	// [WARN] [asset=ExampleNewStdWrapper][caller=github.com/rockbears/log_test.ExampleNewStdWrapperAndSkip][component=rockbears/log] this is warn
 	// [ERROR] [asset=ExampleNewStdWrapper][caller=github.com/rockbears/log_test.ExampleNewStdWrapperAndSkip][component=rockbears/log] this is error
+}
+
+func ExampleGetRegisteredFields() {
+	log.RegisterDefaultFields()
+	registerDefaultFields()
+	fmt.Println(log.GetRegisteredFields())
+	// Output:
+	// [asset caller component source_file source_line stack_trace]
+}
+
+func TestGetRegisteredFields(t *testing.T) {
+	log.RegisterDefaultFields()
+	defer log.RegisterDefaultFields()
+	registerDefaultFields()
+	defer registerDefaultFields()
+
+	log.UnregisterField(log.GetRegisteredFields()...)
+
+	got := log.GetRegisteredFields()
+	if len(got) != 0 {
+		t.Fatalf("want empty slice, got %s", got)
+	}
+
+	log.RegisterField(log.FieldCaller)
+	got = log.GetRegisteredFields()
+	if len(got) != 1 {
+		t.Fatalf("want slice with length 1, got %s", got)
+	}
+
+	gotField := got[0]
+	wantField := log.FieldCaller
+	if gotField != wantField {
+		t.Fatalf("want field %s, got %s", wantField, gotField)
+	}
 }
