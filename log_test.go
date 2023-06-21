@@ -52,7 +52,7 @@ func ExampleNewLogrusWrapper() {
 func ExampleNewStdWrapper() {
 	// Init the wrapper
 	log.Factory = log.NewStdWrapper(log.StdWrapperOptions{Level: log.LevelInfo, DisableTimestamp: true})
-	log.UnregisterField(log.FieldSourceLine, FieldSourceFile)
+	log.UnregisterField(log.FieldSourceLine, log.FieldSourceFile)
 	// Init the context
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, fieldComponent, "rockbears/log")
@@ -79,7 +79,7 @@ func ExampleNewZapWrapper() {
 	}
 	core := zapcore.NewCore(zapcore.NewJSONEncoder(encoderCfg), os.Stdout, zap.InfoLevel)
 	log.Factory = log.NewZapWrapper(zap.New(core))
-	log.UnregisterField(log.FieldSourceLine, FieldSourceFile)
+	log.UnregisterField(log.FieldSourceLine, log.FieldSourceFile)
 	// Init the context
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, fieldComponent, "rockbears/log")
@@ -97,7 +97,7 @@ func ExampleNewZapWrapper() {
 func ExampleErrorWithStackTrace() {
 	// Init the wrapper
 	log.Factory = log.NewStdWrapper(log.StdWrapperOptions{Level: log.LevelInfo, DisableTimestamp: true})
-	log.UnregisterField(log.FieldSourceLine, FieldSourceFile)
+	log.UnregisterField(log.FieldSourceLine, log.FieldSourceFile)
 	// Init the context
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, fieldComponent, "rockbears/log")
@@ -126,7 +126,7 @@ func ExampleErrorWithStackTrace() {
 func ExampleNewStdWrapperAndSkip() {
 	// Init the wrapper
 	log.Factory = log.NewStdWrapper(log.StdWrapperOptions{Level: log.LevelInfo, DisableTimestamp: true})
-	log.UnregisterField(log.FieldSourceLine, FieldSourceFile)
+	log.UnregisterField(log.FieldSourceLine, log.FieldSourceFile)
 	// Init the context
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, fieldComponent, "rockbears/log")
