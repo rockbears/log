@@ -1,7 +1,5 @@
 package log
 
-import "sync"
-
 type (
 	Field string
 	Level int
@@ -28,13 +26,3 @@ type Wrapper interface {
 }
 
 type WrapperFactoryFunc func() Wrapper
-
-var Factory WrapperFactoryFunc = NewLogrusWrapper
-
-var registeredFields []Field
-
-var registeredFieldsMutex sync.Mutex
-
-var excludeRules map[Field]any
-
-var excludeRulesMutex sync.Mutex
