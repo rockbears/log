@@ -15,29 +15,43 @@ It offers a convenient way to keep your logs when you are running unit tests.
 ```
 
 ## How to use
+### Global logger
 
 By default, it is initialized to wrap `logrus` package. You can override `log.Factory` to use the logger library you want.
 
 First register `fields`
 
 ```golang
-    const myField = log.Field("component")
+const myField = log.Field("component")
 
-    func init() {
-        log.RegisterField(myField)
-    }
+func init() {
+    log.RegisterField(myField)
+}
 ```
 
 Then add `fields` as values to you current context.
 
 ```golang
-    ctx = context.WithValue(ctx, myField, "myComponent")
+ctx = context.WithValue(ctx, myField, "myComponent")
 ```
 
 Finally log as usual.
 ```golang
-    log.Info(ctx, "this is a log")
+log.Info(ctx, "this is a log")
 ```
+
+### Logger instance
+You can opt to use a logger instance instead of the global state:
+```golang
+logger := log.NewWithFactory(log.NewLogrusWrapper(logrus.New()))
+
+// Registration is scoped to the logger instance
+logger.RegisterField(myField)
+
+logger.Info(ctx, "this is a log")
+```
+
+A typical use case may be to instanciate a logger at app startup and storing it in a struct for use in other methods.
 
 ## Examples
 
@@ -74,5 +88,3 @@ Log errors easily.
         log.ErrorWithStackTrace(ctx, err) // will produce a nice stack_trace field 
     )
 ```
-
-

@@ -28,7 +28,7 @@ func registerDefaultFields() {
 
 func ExampleNewLogrusWrapper() {
 	// Init the wrapper
-	log.Factory = log.NewLogrusWrapper
+	log.Factory = log.NewLogrusWrapper(logrus.StandardLogger())
 	log.UnregisterField(log.FieldSourceLine, log.FieldSourceFile)
 
 	// Init the logrus logger
@@ -163,4 +163,34 @@ func TestGetRegisteredFields(t *testing.T) {
 	if gotField != wantField {
 		t.Fatalf("want field %s, got %s", wantField, gotField)
 	}
+}
+
+func ExampleNewWithFactory() {
+	// Init the wrapper
+	lrus := logrus.New()
+	logger := log.NewWithFactory(log.NewLogrusWrapper(lrus))
+	logger.RegisterField(fieldComponent, fieldAsset)
+	logger.UnregisterField(log.FieldSourceLine, log.FieldSourceFile)
+
+	// Init the logrus logger
+	lrus.SetLevel(logrus.InfoLevel)
+	lrus.SetFormatter(&logrus.TextFormatter{
+		DisableColors:    true,
+		DisableTimestamp: true,
+	})
+	lrus.Out = os.Stdout
+
+	// Init the context
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, fieldComponent, "rockbears/log")
+	ctx = context.WithValue(ctx, fieldAsset, "ExampleWithLogrus")
+	logger.Debug(ctx, "this log should not be displayed")
+	logger.Info(ctx, "this is %q", "info")
+	logger.Warn(ctx, "this is warn")
+	logger.Error(ctx, "this is error")
+
+	// Output:
+	// level=info msg="this is \"info\"" asset=ExampleWithLogrus caller=github.com/rockbears/log_test.ExampleNewWithFactory component=rockbears/log
+	// level=warning msg="this is warn" asset=ExampleWithLogrus caller=github.com/rockbears/log_test.ExampleNewWithFactory component=rockbears/log
+	// level=error msg="this is error" asset=ExampleWithLogrus caller=github.com/rockbears/log_test.ExampleNewWithFactory component=rockbears/log
 }

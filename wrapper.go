@@ -12,6 +12,7 @@ import (
 )
 
 /* Zap wrapper */
+
 func NewZapWrapper(logger *zap.Logger) WrapperFactoryFunc {
 	return func() Wrapper {
 		return &ZapWrapper{logger: logger, sugar: logger.Sugar()}
@@ -74,8 +75,10 @@ func (l *ZapWrapper) Panicf(format string, args ...interface{}) {
 
 /* Logrus wrapper */
 
-func NewLogrusWrapper() Wrapper {
-	return &LogrusWrapper{entry: logrus.NewEntry(logrus.StandardLogger())}
+func NewLogrusWrapper(logger *logrus.Logger) WrapperFactoryFunc {
+	return func() Wrapper {
+		return &LogrusWrapper{entry: logrus.NewEntry(logger)}
+	}
 }
 
 type LogrusWrapper struct {
@@ -146,13 +149,13 @@ func (l *LogrusWrapper) Panicf(format string, args ...interface{}) {
 	}
 }
 
+/* testing.T wrapper */
+
 func NewTestingWrapper(t *testing.T) WrapperFactoryFunc {
 	return func() Wrapper {
 		return &TestingWrapper{t: t}
 	}
 }
-
-/* testing.T wrapper */
 
 type TestingWrapper struct {
 	ctx map[string]string
