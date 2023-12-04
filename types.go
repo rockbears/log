@@ -5,6 +5,11 @@ type (
 	Level int
 )
 
+type ExcludeRule struct {
+	Field Field
+	Value any
+}
+
 const (
 	LevelDebug Level = iota
 	LevelInfo
