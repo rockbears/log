@@ -25,6 +25,7 @@ func init() {
 	global = New()
 	global.callerFrameToSkip = 3
 	global.globalFactory = true
+	Factory = NewLogrusWrapper(logrus.StandardLogger())
 }
 
 type Logger struct {

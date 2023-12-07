@@ -194,3 +194,7 @@ func ExampleNewWithFactory() {
 	// level=warning msg="this is warn" asset=ExampleWithLogrus caller=github.com/rockbears/log_test.ExampleNewWithFactory component=rockbears/log
 	// level=error msg="this is error" asset=ExampleWithLogrus caller=github.com/rockbears/log_test.ExampleNewWithFactory component=rockbears/log
 }
+
+func TestGlobalDefaultLog(t *testing.T) {
+	log.Info(context.Background(), "hello world")
+}
