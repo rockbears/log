@@ -102,13 +102,23 @@ func ExampleNewZapWrapper() {
 func TestErrorWithStackTrace(t *testing.T) {
 	// Init the wrapper
 	log.Factory = log.NewTestingWrapper(t)
-	log.UnregisterField(log.FieldSourceLine, log.FieldSourceFile)
 	// Init the context
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, fieldComponent, "rockbears/log")
 	ctx = context.WithValue(ctx, fieldAsset, "ExampleErrorWithStackTrace")
 	log.ErrorWithStackTrace(ctx, fmt.Errorf("this is an error"))
 	log.ErrorWithStackTrace(ctx, errors.WithStack(fmt.Errorf("this is an error")))
+}
+
+func TestErrorWithStackTraceAndFactory(t *testing.T) {
+	// Init the wrapper
+	logger := log.NewWithFactory(log.NewTestingWrapper(t))
+	// Init the context
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, fieldComponent, "rockbears/log")
+	ctx = context.WithValue(ctx, fieldAsset, "ExampleErrorWithStackTrace")
+	logger.ErrorWithStackTrace(ctx, fmt.Errorf("this is an error"))
+	logger.ErrorWithStackTrace(ctx, errors.WithStack(fmt.Errorf("this is an error")))
 }
 
 func ExampleNewStdWrapperAndSkip() {

@@ -19,12 +19,11 @@ const (
 )
 
 var global *Logger
-var Factory WrapperFactoryFunc
+var Factory WrapperFactoryFunc = NewLogrusWrapper(logrus.StandardLogger())
 
 func init() {
 	global = New()
 	global.callerFrameToSkip = 3
-	global.globalFactory = true
 }
 
 type Logger struct {
@@ -34,13 +33,10 @@ type Logger struct {
 	excludeRulesMutex     sync.RWMutex
 	factory               WrapperFactoryFunc
 	callerFrameToSkip     int
-
-	// if globalFactory is true, Logger.factory is ignored and Factory is used instead.
-	globalFactory bool
 }
 
 func New() *Logger {
-	return NewWithFactory(NewLogrusWrapper(logrus.StandardLogger()))
+	return NewWithFactory(nil)
 }
 
 func NewWithFactory(factory WrapperFactoryFunc) *Logger {
@@ -148,8 +144,7 @@ func (l *Logger) Panic(ctx context.Context, format string, args ...interface{}) 
 
 func (l *Logger) call(ctx context.Context, level Level, format string, args ...interface{}) {
 	var entry Wrapper
-
-	if l.globalFactory {
+	if l.factory == nil {
 		entry = Factory()
 	} else {
 		entry = l.factory()
