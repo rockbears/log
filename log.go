@@ -29,9 +29,9 @@ func init() {
 
 type Logger struct {
 	registeredFields      []Field
-	registeredFieldsMutex sync.Mutex
-	excludeRules          map[Field]any
-	excludeRulesMutex     sync.Mutex
+	registeredFieldsMutex sync.RWMutex
+	excludeRules          []ExcludeRule
+	excludeRulesMutex     sync.RWMutex
 	factory               WrapperFactoryFunc
 	callerFrameToSkip     int
 
@@ -44,7 +44,7 @@ func New() *Logger {
 }
 
 func NewWithFactory(factory WrapperFactoryFunc) *Logger {
-	logger := &Logger{factory: factory, callerFrameToSkip: 2, excludeRules: make(map[Field]any)}
+	logger := &Logger{factory: factory, callerFrameToSkip: 2}
 	logger.RegisterDefaultFields()
 	return logger
 }
@@ -91,9 +91,19 @@ loop:
 }
 
 func (l *Logger) GetRegisteredFields() []Field {
+	l.registeredFieldsMutex.RLock()
+	defer l.registeredFieldsMutex.RUnlock()
 	fields := make([]Field, len(l.registeredFields))
 	copy(fields, l.registeredFields)
 	return fields
+}
+
+func (l *Logger) GetExcludeRules() []ExcludeRule {
+	l.excludeRulesMutex.RLock()
+	defer l.excludeRulesMutex.RUnlock()
+	excludeRules := make([]ExcludeRule, len(l.excludeRules))
+	copy(excludeRules, l.excludeRules)
+	return excludeRules
 }
 
 func (l *Logger) RegisterDefaultFields() {
@@ -103,8 +113,13 @@ func (l *Logger) RegisterDefaultFields() {
 func (l *Logger) Skip(field Field, value interface{}) {
 	l.excludeRulesMutex.Lock()
 	defer l.excludeRulesMutex.Unlock()
-
-	l.excludeRules[field] = value
+	for i := range l.excludeRules {
+		if l.excludeRules[i].Field == field {
+			l.excludeRules[i].Value = value
+			return
+		}
+	}
+	l.excludeRules = append(l.excludeRules, ExcludeRule{field, value})
 }
 
 func (l *Logger) Debug(ctx context.Context, format string, args ...interface{}) {
@@ -154,10 +169,15 @@ func (l *Logger) call(ctx context.Context, level Level, format string, args ...i
 		}
 	}
 
-	for _, k := range l.registeredFields {
+	mExcludeRules := make(map[Field]any)
+	for i := range l.GetExcludeRules() {
+		mExcludeRules[l.excludeRules[i].Field] = l.excludeRules[i].Value
+	}
+
+	for _, k := range l.GetRegisteredFields() {
 		v := ctx.Value(k)
 		if v != nil {
-			if exludeValue, has := l.excludeRules[k]; has {
+			if exludeValue, has := mExcludeRules[k]; has {
 				if v == exludeValue {
 					return
 				}
