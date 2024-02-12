@@ -151,7 +151,7 @@ func (l *LogrusWrapper) Panicf(format string, args ...interface{}) {
 
 /* testing.T wrapper */
 
-func NewTestingWrapper(t *testing.T) WrapperFactoryFunc {
+func NewTestingWrapper(t testing.TB) WrapperFactoryFunc {
 	return func() Wrapper {
 		return &TestingWrapper{t: t}
 	}
@@ -159,7 +159,7 @@ func NewTestingWrapper(t *testing.T) WrapperFactoryFunc {
 
 type TestingWrapper struct {
 	ctx map[string]string
-	t   *testing.T
+	t   testing.TB
 }
 
 func (l *TestingWrapper) GetLevel() Level {
