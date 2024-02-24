@@ -45,6 +45,14 @@ func NewWithFactory(factory WrapperFactoryFunc) *Logger {
 	return logger
 }
 
+func (l *Logger) GetFramesToSkip() int {
+	return l.callerFrameToSkip
+}
+
+func (l *Logger) SetFramesToSkip(s int) {
+	l.callerFrameToSkip = s
+}
+
 func (l *Logger) RegisterField(fields ...Field) {
 	l.registeredFieldsMutex.Lock()
 	defer l.registeredFieldsMutex.Unlock()
@@ -228,6 +236,14 @@ func ContextWithStackTrace(ctx context.Context, err error) context.Context {
 		ctx = context.WithValue(ctx, FieldStackTrace, fmt.Sprintf("%+v", errWithStracktrace))
 	}
 	return ctx
+}
+
+func GetFramesToSkip() int {
+	return global.GetFramesToSkip()
+}
+
+func SetFramesToSkip(s int) {
+	global.SetFramesToSkip(s)
 }
 
 func RegisterField(fields ...Field) {
