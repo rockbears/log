@@ -86,7 +86,7 @@ type LogrusWrapper struct {
 }
 
 func (l *LogrusWrapper) GetLevel() Level {
-	switch logrus.StandardLogger().Level {
+	switch l.entry.Logger.Level {
 	case logrus.DebugLevel:
 		return LevelDebug
 	case logrus.InfoLevel:
