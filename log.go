@@ -173,8 +173,8 @@ func (l *Logger) call(ctx context.Context, level Level, format string, args ...i
 	}
 
 	mExcludeRules := make(map[Field]any)
-	for i := range l.GetExcludeRules() {
-		mExcludeRules[l.excludeRules[i].Field] = l.excludeRules[i].Value
+	for _, rule := range l.GetExcludeRules() {
+		mExcludeRules[rule.Field] = rule.Value
 	}
 
 	for _, k := range l.GetRegisteredFields() {
