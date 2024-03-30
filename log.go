@@ -180,8 +180,8 @@ func (l *Logger) call(ctx context.Context, level Level, format string, args ...i
 	for _, k := range l.GetRegisteredFields() {
 		v := ctx.Value(k)
 		if v != nil {
-			if exludeValue, has := mExcludeRules[k]; has {
-				if v == exludeValue {
+			if excludeValue, has := mExcludeRules[k]; has {
+				if v == excludeValue {
 					return
 				}
 			}
