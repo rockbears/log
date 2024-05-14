@@ -19,7 +19,7 @@ const (
 )
 
 var global *Logger
-var Factory WrapperFactoryFunc = NewLogrusWrapper(logrus.StandardLogger())
+var Factory = NewLogrusWrapper(logrus.StandardLogger())
 
 func init() {
 	global = New()
@@ -27,12 +27,11 @@ func init() {
 }
 
 type Logger struct {
-	registeredFields      []Field
-	registeredFieldsMutex sync.RWMutex
-	excludeRules          []ExcludeRule
-	excludeRulesMutex     sync.RWMutex
-	factory               WrapperFactoryFunc
-	callerFrameToSkip     int
+	registeredFields  []Field
+	excludeRules      []ExcludeRule
+	factory           WrapperFactoryFunc
+	callerFrameToSkip int
+	mutex             sync.RWMutex
 }
 
 func New() *Logger {
@@ -46,16 +45,22 @@ func NewWithFactory(factory WrapperFactoryFunc) *Logger {
 }
 
 func (l *Logger) GetFramesToSkip() int {
+	l.mutex.RLock()
+	defer l.mutex.RUnlock()
+
 	return l.callerFrameToSkip
 }
 
 func (l *Logger) SetFramesToSkip(s int) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
 	l.callerFrameToSkip = s
 }
 
 func (l *Logger) RegisterField(fields ...Field) {
-	l.registeredFieldsMutex.Lock()
-	defer l.registeredFieldsMutex.Unlock()
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
 
 	for _, f := range fields {
 		var exist bool
@@ -76,8 +81,8 @@ func (l *Logger) RegisterField(fields ...Field) {
 }
 
 func (l *Logger) UnregisterField(fields ...Field) {
-	l.registeredFieldsMutex.Lock()
-	defer l.registeredFieldsMutex.Unlock()
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
 
 loop:
 	for _, f := range fields {
@@ -95,16 +100,18 @@ loop:
 }
 
 func (l *Logger) GetRegisteredFields() []Field {
-	l.registeredFieldsMutex.RLock()
-	defer l.registeredFieldsMutex.RUnlock()
+	l.mutex.RLock()
+	defer l.mutex.RUnlock()
+
 	fields := make([]Field, len(l.registeredFields))
 	copy(fields, l.registeredFields)
 	return fields
 }
 
 func (l *Logger) GetExcludeRules() []ExcludeRule {
-	l.excludeRulesMutex.RLock()
-	defer l.excludeRulesMutex.RUnlock()
+	l.mutex.RLock()
+	defer l.mutex.RUnlock()
+
 	excludeRules := make([]ExcludeRule, len(l.excludeRules))
 	copy(excludeRules, l.excludeRules)
 	return excludeRules
@@ -115,8 +122,9 @@ func (l *Logger) RegisterDefaultFields() {
 }
 
 func (l *Logger) Skip(field Field, value interface{}) {
-	l.excludeRulesMutex.Lock()
-	defer l.excludeRulesMutex.Unlock()
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
 	for i := range l.excludeRules {
 		if l.excludeRules[i].Field == field {
 			l.excludeRules[i].Value = value
@@ -124,6 +132,13 @@ func (l *Logger) Skip(field Field, value interface{}) {
 		}
 	}
 	l.excludeRules = append(l.excludeRules, ExcludeRule{field, value})
+}
+
+func (l *Logger) SetFactory(factory WrapperFactoryFunc) {
+	l.mutex.Lock()
+	defer l.mutex.Unlock()
+
+	l.factory = factory
 }
 
 func (l *Logger) Debug(ctx context.Context, format string, args ...interface{}) {
@@ -152,11 +167,16 @@ func (l *Logger) Panic(ctx context.Context, format string, args ...interface{}) 
 
 func (l *Logger) call(ctx context.Context, level Level, format string, args ...interface{}) {
 	var entry Wrapper
+
+	l.mutex.RLock()
+
 	if l.factory == nil {
 		entry = Factory()
 	} else {
 		entry = l.factory()
 	}
+
+	l.mutex.RUnlock()
 
 	if level < entry.GetLevel() {
 		return
@@ -264,6 +284,10 @@ func RegisterDefaultFields() {
 
 func Skip(field Field, value interface{}) {
 	global.Skip(field, value)
+}
+
+func SetFactory(factory WrapperFactoryFunc) {
+	global.SetFactory(factory)
 }
 
 func Debug(ctx context.Context, format string, args ...interface{}) {
