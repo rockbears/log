@@ -17,6 +17,7 @@ const (
 	LevelError
 	LevelFatal
 	LevelPanic
+	LevelTrace
 )
 
 type Wrapper interface {

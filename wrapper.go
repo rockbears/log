@@ -99,6 +99,8 @@ func (l *LogrusWrapper) GetLevel() Level {
 		return LevelFatal
 	case logrus.PanicLevel:
 		return LevelPanic
+	case logrus.TraceLevel:
+		return LevelTrace
 	default:
 		panic(fmt.Errorf("logrus level %q is not handled", l.entry.Level))
 	}
