@@ -54,24 +54,6 @@ func ExampleNewLogrusWrapper() {
 	// level=error msg="this is error" asset=ExampleWithLogrus caller=github.com/rockbears/log_test.ExampleNewLogrusWrapper component=rockbears/log
 }
 
-func ExampleNewStdWrapper() {
-	// Init the wrapper
-	log.Factory = log.NewStdWrapper(log.StdWrapperOptions{Level: log.LevelInfo, DisableTimestamp: true})
-	log.UnregisterField(log.FieldSourceLine, log.FieldSourceFile)
-	// Init the context
-	ctx := context.Background()
-	ctx = context.WithValue(ctx, fieldComponent, "rockbears/log")
-	ctx = context.WithValue(ctx, fieldAsset, "ExampleNewStdWrapper")
-	log.Debug(ctx, "this log should not be displayed")
-	log.Info(ctx, "this is %q", "info")
-	log.Warn(ctx, "this is warn")
-	log.Error(ctx, "this is error")
-	// Output:
-	// [INFO] [asset=ExampleNewStdWrapper][caller=github.com/rockbears/log_test.ExampleNewStdWrapper][component=rockbears/log] this is "info"
-	// [WARN] [asset=ExampleNewStdWrapper][caller=github.com/rockbears/log_test.ExampleNewStdWrapper][component=rockbears/log] this is warn
-	// [ERROR] [asset=ExampleNewStdWrapper][caller=github.com/rockbears/log_test.ExampleNewStdWrapper][component=rockbears/log] this is error
-}
-
 func ExampleNewZapWrapper() {
 	// Init the wrapper
 	encoderCfg := zapcore.EncoderConfig{
@@ -121,7 +103,7 @@ func TestErrorWithStackTraceAndFactory(t *testing.T) {
 	logger.ErrorWithStackTrace(ctx, errors.WithStack(fmt.Errorf("this is an error")))
 }
 
-func ExampleNewStdWrapperAndSkip() {
+func ExampleNewStdWrapper() {
 	// Init the wrapper
 	log.Factory = log.NewStdWrapper(log.StdWrapperOptions{Level: log.LevelInfo, DisableTimestamp: true})
 	log.UnregisterField(log.FieldSourceLine, log.FieldSourceFile)
@@ -136,9 +118,9 @@ func ExampleNewStdWrapperAndSkip() {
 	log.Skip(fieldAsset, "ExampleNewStdWrapper")
 	log.Info(ctx, "this log should not be displayed because is should be skipped")
 	// Output:
-	// [INFO] [asset=ExampleNewStdWrapper][caller=github.com/rockbears/log_test.ExampleNewStdWrapperAndSkip][component=rockbears/log] this is "info"
-	// [WARN] [asset=ExampleNewStdWrapper][caller=github.com/rockbears/log_test.ExampleNewStdWrapperAndSkip][component=rockbears/log] this is warn
-	// [ERROR] [asset=ExampleNewStdWrapper][caller=github.com/rockbears/log_test.ExampleNewStdWrapperAndSkip][component=rockbears/log] this is error
+	// [INFO] [asset=ExampleNewStdWrapper][caller=github.com/rockbears/log_test.ExampleNewStdWrapper][component=rockbears/log] this is "info"
+	// [WARN] [asset=ExampleNewStdWrapper][caller=github.com/rockbears/log_test.ExampleNewStdWrapper][component=rockbears/log] this is warn
+	// [ERROR] [asset=ExampleNewStdWrapper][caller=github.com/rockbears/log_test.ExampleNewStdWrapper][component=rockbears/log] this is error
 }
 
 func ExampleGetRegisteredFields() {
