@@ -42,33 +42,39 @@ func (l *ZapWrapper) GetLevel() Level {
 		panic(fmt.Errorf("zap level is not handled"))
 	}
 }
+
 func (l *ZapWrapper) WithField(key string, value interface{}) {
 	l.sugar = l.sugar.With(key, value)
 }
+
 func (l *ZapWrapper) format(format string, args ...interface{}) string {
-	var msg = format
+	msg := format
 	if len(args) > 0 {
 		msg = fmt.Sprintf(format, args...)
 	}
 	return msg
 }
+
 func (l *ZapWrapper) Debugf(format string, args ...interface{}) {
 	l.sugar.Debugw(l.format(format, args...))
 }
+
 func (l *ZapWrapper) Infof(format string, args ...interface{}) {
 	l.sugar.Infow(l.format(format, args...))
-
 }
+
 func (l *ZapWrapper) Warnf(format string, args ...interface{}) {
 	l.sugar.Warnw(l.format(format, args...))
-
 }
+
 func (l *ZapWrapper) Fatalf(format string, args ...interface{}) {
 	l.sugar.Fatalw(l.format(format, args...))
 }
+
 func (l *ZapWrapper) Errorf(format string, args ...interface{}) {
 	l.sugar.Errorw(l.format(format, args...))
 }
+
 func (l *ZapWrapper) Panicf(format string, args ...interface{}) {
 	l.sugar.Panicw(l.format(format, args...))
 }
@@ -103,9 +109,11 @@ func (l *LogrusWrapper) GetLevel() Level {
 		panic(fmt.Errorf("logrus level %q is not handled", l.entry.Level))
 	}
 }
+
 func (l *LogrusWrapper) WithField(key string, value interface{}) {
 	l.entry = l.entry.WithField(key, value)
 }
+
 func (l *LogrusWrapper) Debugf(format string, args ...interface{}) {
 	if len(args) == 0 {
 		l.entry.Debug(format)
@@ -113,6 +121,7 @@ func (l *LogrusWrapper) Debugf(format string, args ...interface{}) {
 		l.entry.Debugf(format, args...)
 	}
 }
+
 func (l *LogrusWrapper) Infof(format string, args ...interface{}) {
 	if len(args) == 0 {
 		l.entry.Info(format)
@@ -120,6 +129,7 @@ func (l *LogrusWrapper) Infof(format string, args ...interface{}) {
 		l.entry.Infof(format, args...)
 	}
 }
+
 func (l *LogrusWrapper) Warnf(format string, args ...interface{}) {
 	if len(args) == 0 {
 		l.entry.Warn(format)
@@ -127,6 +137,7 @@ func (l *LogrusWrapper) Warnf(format string, args ...interface{}) {
 		l.entry.Warnf(format, args...)
 	}
 }
+
 func (l *LogrusWrapper) Fatalf(format string, args ...interface{}) {
 	if len(args) == 0 {
 		l.entry.Fatal(format)
@@ -134,6 +145,7 @@ func (l *LogrusWrapper) Fatalf(format string, args ...interface{}) {
 		l.entry.Fatalf(format, args...)
 	}
 }
+
 func (l *LogrusWrapper) Errorf(format string, args ...interface{}) {
 	if len(args) == 0 {
 		l.entry.Error(format)
@@ -141,6 +153,7 @@ func (l *LogrusWrapper) Errorf(format string, args ...interface{}) {
 		l.entry.Errorf(format, args...)
 	}
 }
+
 func (l *LogrusWrapper) Panicf(format string, args ...interface{}) {
 	if len(args) == 0 {
 		l.entry.Panic(format)
@@ -165,12 +178,19 @@ type TestingWrapper struct {
 func (l *TestingWrapper) GetLevel() Level {
 	return LevelDebug
 }
+
 func (l *TestingWrapper) WithField(key string, value interface{}) {
 	if l.ctx == nil {
 		l.ctx = map[string]string{}
 	}
-	l.ctx[key] = fmt.Sprintf("%v", value)
+	switch x := value.(type) {
+	case string:
+		l.ctx[key] = x
+	default:
+		l.ctx[key] = fmt.Sprintf("%v", value)
+	}
 }
+
 func formatCtx(ctx map[string]string) string {
 	var keys []string
 	for k := range ctx {
@@ -185,50 +205,57 @@ func formatCtx(ctx map[string]string) string {
 	}
 	return s
 }
+
+func getFormatedMsg(format string, args ...interface{}) string {
+	var formatedMsg string
+	if len(args) == 0 {
+		formatedMsg = format
+	} else {
+		formatedMsg = fmt.Sprintf(format, args...)
+	}
+	return formatedMsg
+}
+
 func (l *TestingWrapper) log(level, format string, args ...interface{}) {
 	// Recover function to avoid panic: Log in goroutine after test has completed
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Printf("[" + level + "] " + formatCtx(l.ctx) + " " + fmt.Sprintf(format, args...))
+			fmt.Print("[" + level + "] " + formatCtx(l.ctx) + " " + getFormatedMsg(format, args...))
 		}
 	}()
-	if len(args) == 0 {
-		l.t.Log("[" + level + "] " + formatCtx(l.ctx) + " " + format)
-	} else {
-		l.t.Logf("[" + level + "] " + formatCtx(l.ctx) + " " + fmt.Sprintf(format, args...))
-	}
+	l.t.Log("[" + level + "] " + formatCtx(l.ctx) + " " + getFormatedMsg(format, args...))
 }
+
 func (l *TestingWrapper) fatal(format string, args ...interface{}) {
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Printf("[FATAL] " + formatCtx(l.ctx) + " " + fmt.Sprintf(format, args...))
+			fmt.Print("[FATAL] " + formatCtx(l.ctx) + " " + getFormatedMsg(format, args...))
 			os.Exit(2)
 		}
 	}()
-	if len(args) == 0 {
-		l.t.Fatal("[FATAL] " + formatCtx(l.ctx) + " " + format)
-	} else {
-		l.t.Fatalf("[FATAL] " + formatCtx(l.ctx) + " " + fmt.Sprintf(format, args...))
-	}
+	l.t.Fatal("[FATAL] " + formatCtx(l.ctx) + " " + getFormatedMsg(format, args...))
 }
 
 func (l *TestingWrapper) Debugf(format string, args ...interface{}) {
 	l.log("DEBUG", format, args...)
 }
+
 func (l *TestingWrapper) Infof(format string, args ...interface{}) {
 	l.log("INFO", format, args...)
-
 }
+
 func (l *TestingWrapper) Warnf(format string, args ...interface{}) {
 	l.log("WARN", format, args...)
-
 }
+
 func (l *TestingWrapper) Fatalf(format string, args ...interface{}) {
 	l.fatal(format, args...)
 }
+
 func (l *TestingWrapper) Errorf(format string, args ...interface{}) {
 	l.log("ERROR", format, args...)
 }
+
 func (l *TestingWrapper) Panicf(format string, args ...interface{}) {
 	l.log("PANIC", format, args...)
 }
@@ -254,6 +281,7 @@ func NewStdWrapper(opts StdWrapperOptions) WrapperFactoryFunc {
 func (l *StdWrapper) GetLevel() Level {
 	return l.opts.Level
 }
+
 func (l *StdWrapper) WithField(key string, value interface{}) {
 	if l.ctx == nil {
 		l.ctx = map[string]string{}
@@ -270,50 +298,26 @@ func (l *StdWrapper) Print(s string) {
 }
 
 func (l *StdWrapper) Debugf(format string, args ...interface{}) {
-	if len(args) == 0 {
-		l.Print("[DEBUG] " + formatCtx(l.ctx) + " " + format)
-	} else {
-		l.Print("[DEBUG] " + formatCtx(l.ctx) + " " + fmt.Sprintf(format, args...))
-	}
+	l.Print("[DEBUG] " + formatCtx(l.ctx) + " " + getFormatedMsg(format, args...))
 }
 
 func (l *StdWrapper) Infof(format string, args ...interface{}) {
-	if len(args) == 0 {
-		l.Print("[INFO] " + formatCtx(l.ctx) + " " + format)
-	} else {
-		l.Print("[INFO] " + formatCtx(l.ctx) + " " + fmt.Sprintf(format, args...))
-	}
+	l.Print("[INFO] " + formatCtx(l.ctx) + " " + getFormatedMsg(format, args...))
 }
 
 func (l *StdWrapper) Warnf(format string, args ...interface{}) {
-	if len(args) == 0 {
-		l.Print("[WARN] " + formatCtx(l.ctx) + " " + format)
-	} else {
-		l.Print("[WARN] " + formatCtx(l.ctx) + " " + fmt.Sprintf(format, args...))
-	}
+	l.Print("[WARN] " + formatCtx(l.ctx) + " " + getFormatedMsg(format, args...))
 }
 
 func (l *StdWrapper) Fatalf(format string, args ...interface{}) {
-	if len(args) == 0 {
-		l.Print("[FATAL] " + formatCtx(l.ctx) + " " + format)
-	} else {
-		l.Print("[FATAL] " + formatCtx(l.ctx) + " " + fmt.Sprintf(format, args...))
-	}
+	l.Print("[FATAL] " + formatCtx(l.ctx) + " " + getFormatedMsg(format, args...))
 	os.Exit(1)
 }
 
 func (l *StdWrapper) Errorf(format string, args ...interface{}) {
-	if len(args) == 0 {
-		l.Print("[ERROR] " + formatCtx(l.ctx) + " " + format)
-	} else {
-		l.Print("[ERROR] " + formatCtx(l.ctx) + " " + fmt.Sprintf(format, args...))
-	}
+	l.Print("[ERROR] " + formatCtx(l.ctx) + " " + getFormatedMsg(format, args...))
 }
 
 func (l *StdWrapper) Panicf(format string, args ...interface{}) {
-	if len(args) == 0 {
-		l.Print("[PANIC] " + formatCtx(l.ctx) + " " + format)
-	} else {
-		l.Print("[PANIC] " + formatCtx(l.ctx) + " " + fmt.Sprintf(format, args...))
-	}
+	l.Print("[PANIC] " + formatCtx(l.ctx) + " " + getFormatedMsg(format, args...))
 }
